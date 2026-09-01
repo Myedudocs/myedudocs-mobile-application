@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
   Platform,
   Image,
+  Animated,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -34,6 +35,8 @@ import {
   ShieldAlert,
   RotateCcw,
   Sparkles,
+  User,
+  Lock,
 } from 'lucide-react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
@@ -124,16 +127,185 @@ const formatTime = (seconds: number) => {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 };
 
-// Watermark Component (Anti-Screenshot)
-const WatermarkOverlay = ({ email }: { email?: string }) => (
-  <View style={styles.watermarkContainer} pointerEvents="none">
-    {Array.from({ length: 12 }).map((_, i) => (
-      <Text key={i} style={styles.watermarkText}>
-        {email || 'STUDENT'} • MYEDUDOCS • PROTECTED
-      </Text>
-    ))}
-  </View>
-);
+// --------------------------------------------------------
+// Watermark Component (Anti-Screenshot Dynamic Multi-Node Animated Drift)
+// --------------------------------------------------------
+interface WatermarkOverlayProps {
+  email?: string;
+  name?: string;
+}
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+const WatermarkOverlay: React.FC<WatermarkOverlayProps> = ({ email, name }) => {
+  const displayEmail = (email || 'user@myedudocs.in').toLowerCase();
+  const displayName = name ? name.toUpperCase() : '';
+  const labelText = displayName ? `${displayName} • ${displayEmail}` : displayEmail;
+
+  const [liveTime, setLiveTime] = useState(() =>
+    new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+  );
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setLiveTime(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }));
+    }, 15000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Animated values for 3 independent floating nodes
+  const moveAnim1 = useRef(new Animated.ValueXY({ x: 10, y: 50 })).current;
+  const moveAnim2 = useRef(new Animated.ValueXY({ x: Math.max(20, SCREEN_WIDTH * 0.4), y: Math.max(100, SCREEN_HEIGHT * 0.55) })).current;
+  const moveAnim3 = useRef(new Animated.ValueXY({ x: Math.max(15, SCREEN_WIDTH * 0.15), y: Math.max(60, SCREEN_HEIGHT * 0.28) })).current;
+
+  useEffect(() => {
+    // Node 1: Diagonal smooth float loop
+    const anim1 = Animated.loop(
+      Animated.sequence([
+        Animated.timing(moveAnim1, {
+          toValue: { x: Math.max(10, SCREEN_WIDTH * 0.35), y: Math.max(40, SCREEN_HEIGHT * 0.22) },
+          duration: 9000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(moveAnim1, {
+          toValue: { x: 15, y: Math.max(80, SCREEN_HEIGHT * 0.65) },
+          duration: 12000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(moveAnim1, {
+          toValue: { x: Math.max(10, SCREEN_WIDTH * 0.42), y: Math.max(50, SCREEN_HEIGHT * 0.45) },
+          duration: 10000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(moveAnim1, {
+          toValue: { x: 10, y: 50 },
+          duration: 9000,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    // Node 2: Counter-phase float loop
+    const anim2 = Animated.loop(
+      Animated.sequence([
+        Animated.timing(moveAnim2, {
+          toValue: { x: 20, y: Math.max(40, SCREEN_HEIGHT * 0.3) },
+          duration: 11000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(moveAnim2, {
+          toValue: { x: Math.max(10, SCREEN_WIDTH * 0.35), y: Math.max(20, SCREEN_HEIGHT * 0.12) },
+          duration: 10000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(moveAnim2, {
+          toValue: { x: 10, y: Math.max(90, SCREEN_HEIGHT * 0.7) },
+          duration: 12000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(moveAnim2, {
+          toValue: { x: Math.max(20, SCREEN_WIDTH * 0.4), y: Math.max(100, SCREEN_HEIGHT * 0.55) },
+          duration: 11000,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    // Node 3: Center-drift float loop
+    const anim3 = Animated.loop(
+      Animated.sequence([
+        Animated.timing(moveAnim3, {
+          toValue: { x: Math.max(10, SCREEN_WIDTH * 0.3), y: Math.max(70, SCREEN_HEIGHT * 0.6) },
+          duration: 13000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(moveAnim3, {
+          toValue: { x: 15, y: Math.max(30, SCREEN_HEIGHT * 0.18) },
+          duration: 11000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(moveAnim3, {
+          toValue: { x: Math.max(10, SCREEN_WIDTH * 0.38), y: Math.max(50, SCREEN_HEIGHT * 0.38) },
+          duration: 10000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(moveAnim3, {
+          toValue: { x: Math.max(15, SCREEN_WIDTH * 0.15), y: Math.max(60, SCREEN_HEIGHT * 0.28) },
+          duration: 12000,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    anim1.start();
+    anim2.start();
+    anim3.start();
+
+    return () => {
+      anim1.stop();
+      anim2.stop();
+      anim3.stop();
+    };
+  }, [moveAnim1, moveAnim2, moveAnim3]);
+
+  return (
+    <View style={styles.watermarkContainer} pointerEvents="none">
+      {/* Background static faint repeating grid */}
+      <View style={styles.staticWatermarkGrid}>
+        {Array.from({ length: 8 }).map((_, i) => (
+          <Text key={i} style={styles.watermarkText}>
+            {labelText} • {liveTime} • MYEDUDOCS
+          </Text>
+        ))}
+      </View>
+
+      {/* Dynamic Animated Node 1: User Full Name + Email Pill */}
+      <Animated.View
+        style={[
+          styles.floatingWatermarkNode,
+          {
+            transform: moveAnim1.getTranslateTransform(),
+          },
+        ]}
+      >
+        <User size={12} color="rgba(15, 23, 42, 0.3)" style={{ marginRight: 4 }} />
+        <Text style={styles.floatingWatermarkText}>
+          {labelText} • {liveTime}
+        </Text>
+      </Animated.View>
+
+      {/* Dynamic Animated Node 2: Security LMS Identity */}
+      <Animated.View
+        style={[
+          styles.floatingWatermarkNode,
+          {
+            transform: moveAnim2.getTranslateTransform(),
+          },
+        ]}
+      >
+        <Lock size={12} color="rgba(15, 23, 42, 0.3)" style={{ marginRight: 4 }} />
+        <Text style={styles.floatingWatermarkText}>
+          MyEduDocs Protected • {displayEmail}
+        </Text>
+      </Animated.View>
+
+      {/* Dynamic Animated Node 3: Live Timestamp Node */}
+      <Animated.View
+        style={[
+          styles.floatingWatermarkNode,
+          {
+            transform: moveAnim3.getTranslateTransform(),
+          },
+        ]}
+      >
+        <Clock size={12} color="rgba(15, 23, 42, 0.3)" style={{ marginRight: 4 }} />
+        <Text style={styles.floatingWatermarkText}>
+          {displayName || 'STUDENT'} • {liveTime}
+        </Text>
+      </Animated.View>
+    </View>
+  );
+};
 
 // --------------------------------------------------------
 // 2. MAIN COMPONENT
@@ -521,6 +693,7 @@ export const TestInterface = () => {
     return (
       <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
+        <WatermarkOverlay email={user?.email} name={user?.name} />
         
         {/* Single Sleek Header */}
         <View style={[styles.instHeader, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border }]}>
@@ -682,7 +855,7 @@ export const TestInterface = () => {
     return (
       <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
-        <WatermarkOverlay email={user?.email} />
+        <WatermarkOverlay email={user?.email} name={user?.name} />
 
         {/* --- SINGLE MASTER TEST HEADER --- */}
         <View style={[styles.activeHeader, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border }]}>
@@ -1166,16 +1339,40 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     zIndex: 999,
     overflow: 'hidden',
+  },
+  staticWatermarkGrid: {
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'space-around',
     alignItems: 'center',
-    opacity: 0.02,
+    opacity: 0.025,
   },
   watermarkText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '800',
     color: '#000',
     transform: [{ rotate: '-30deg' }],
-    marginVertical: 35,
+    marginVertical: 25,
+  },
+  floatingWatermarkNode: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(15, 23, 42, 0.12)',
+    borderStyle: 'dashed',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  floatingWatermarkText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: 'rgba(15, 23, 42, 0.22)',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    letterSpacing: 0.3,
   },
 
   // Instructions Screen
