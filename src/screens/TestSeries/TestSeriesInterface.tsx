@@ -533,6 +533,23 @@ export const TestInterface = () => {
             </Text>
             <Text style={[styles.instHeaderSub, { color: theme.colors.primary }]}>TEST INSTRUCTIONS</Text>
           </View>
+          {/* Language Toggle in Instructions Header */}
+          <TouchableOpacity
+            style={[
+              styles.headerPillBtn,
+              {
+                backgroundColor: selectedLanguage === 'hindi' ? '#FEF3C7' : isDarkMode ? '#1E293B' : '#EEF2FF',
+                borderColor: selectedLanguage === 'hindi' ? '#F59E0B' : theme.colors.border,
+              },
+            ]}
+            onPress={() => setSelectedLanguage(prev => (prev === 'english' ? 'hindi' : 'english'))}
+            activeOpacity={0.8}
+          >
+            <Globe color={selectedLanguage === 'hindi' ? '#D97706' : theme.colors.primary} size={13} />
+            <Text style={[styles.headerPillText, { color: selectedLanguage === 'hindi' ? '#D97706' : theme.colors.primary }]}>
+              {selectedLanguage === 'english' ? 'EN' : 'HI'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         <ScrollView contentContainerStyle={styles.instScrollContent} showsVerticalScrollIndicator={false}>
@@ -645,20 +662,22 @@ export const TestInterface = () => {
   // RENDER: ACTIVE TEST SCREEN
   // ======================================================================
   if (testState === 'ACTIVE' && attemptData && currentQ) {
-    const currentQText =
-      selectedLanguage === 'hindi' && (currentQ.questionTextHindi || currentQ.hindi?.questionText)
-        ? currentQ.questionTextHindi || currentQ.hindi?.questionText || ''
-        : currentQ.questionText;
+    const isHindi = selectedLanguage === 'hindi';
+    const hindiText = currentQ.questionTextHindi || currentQ.hindi?.questionText;
+    const hindiImage = currentQ.questionImageHindi || currentQ.hindi?.questionImage;
+    const hindiLatex = currentQ.questionLatexHindi || currentQ.hindi?.questionLatex;
+    const hindiOptions = (currentQ.optionsHindi && currentQ.optionsHindi.length > 0)
+      ? currentQ.optionsHindi
+      : (currentQ.hindi?.options && currentQ.hindi?.options.length > 0 ? currentQ.hindi.options : null);
 
-    const currentQImage =
-      selectedLanguage === 'hindi' && (currentQ.questionImageHindi || currentQ.hindi?.questionImage)
-        ? currentQ.questionImageHindi || currentQ.hindi?.questionImage
-        : currentQ.questionImage;
+    const hasHindiForThisQ = !!(hindiText || hindiImage || hindiLatex || (hindiOptions && hindiOptions.length > 0));
+    const hasAnyHindiInTest = attemptData.testSeries.language === 'both' ||
+      (attemptData.testSeries.availableLanguages && attemptData.testSeries.availableLanguages.length > 1) ||
+      attemptData.questions.some(q => q.questionTextHindi || q.hindi?.questionText || (q.optionsHindi && q.optionsHindi.length > 0) || (q.hindi?.options && q.hindi?.options.length > 0));
 
-    const currentOptionsList =
-      selectedLanguage === 'hindi' && (currentQ.optionsHindi?.length || currentQ.hindi?.options?.length)
-        ? currentQ.optionsHindi || currentQ.hindi?.options || currentQ.options
-        : currentQ.options;
+    const currentQText = (isHindi && hindiText) ? hindiText : (currentQ.questionText || '');
+    const currentQImage = (isHindi && hindiImage) ? hindiImage : currentQ.questionImage;
+    const currentOptionsList = (isHindi && hindiOptions) ? hindiOptions : currentQ.options;
 
     return (
       <View style={[styles.container, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
@@ -828,6 +847,44 @@ export const TestInterface = () => {
                 +{currentQ.marks || 2} / -{currentQ.negativeMarks || 0.66}
               </Text>
             </View>
+
+            {/* Direct In-Question Language Switcher Pill (Always Visible) */}
+            <TouchableOpacity
+              style={[
+                styles.badgePill,
+                {
+                  backgroundColor: isHindi ? '#FEF3C7' : '#EEF2FF',
+                  borderColor: isHindi ? '#F59E0B' : theme.colors.primary,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingHorizontal: 8,
+                },
+              ]}
+              onPress={() => setSelectedLanguage(prev => (prev === 'english' ? 'hindi' : 'english'))}
+              activeOpacity={0.7}
+            >
+              <Globe size={11} color={isHindi ? '#D97706' : theme.colors.primary} />
+              <Text
+                style={[
+                  styles.badgePillText,
+                  {
+                    color: isHindi ? '#D97706' : theme.colors.primary,
+                    fontWeight: '800',
+                    marginLeft: 4,
+                  },
+                ]}
+              >
+                {isHindi ? '🇮🇳 हिन्दी' : '🇬🇧 EN'}
+              </Text>
+            </TouchableOpacity>
+
+            {isHindi && !hasHindiForThisQ && (
+              <View style={[styles.badgePill, { backgroundColor: '#FEF2F2', borderColor: '#FCA5A5' }]}>
+                <Text style={[styles.badgePillText, { color: '#DC2626', fontSize: 10 }]}>
+                  (English shown)
+                </Text>
+              </View>
+            )}
 
             {marked.has(currentQ.id) && (
               <View style={[styles.badgePill, { backgroundColor: 'rgba(139,92,246,0.15)', borderColor: '#8B5CF6' }]}>
