@@ -1077,7 +1077,7 @@ export const TestInterface = () => {
           {/* Question Text */}
           {currentQText ? (
             <Text style={[styles.questionTextBody, { color: theme.colors.textMain }]}>
-              {currentQIndex + 1}. {currentQText}
+              {currentQIndex + 1}. {currentQText.replace(/^\s*(?:Q\.?\s*\d+|\d+[\.\)\-]\s*)+/i, '').trim()}
             </Text>
           ) : null}
 
