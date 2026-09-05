@@ -22,6 +22,8 @@ export interface ExamAttempt {
   rank?: number;
   grade?: 'A+' | 'A' | 'B' | 'C' | 'D' | 'F';
   subjects?: Array<{ name: string; score: number; accuracy: number }>;
+  category?: string;   // pack / category for filter parity with web
+  isLive?: boolean;    // live session flag for filter parity with web
 }
 
 export interface ResultsStats {
@@ -94,6 +96,8 @@ export const useExamResults = (page = 1, limit = 20) => {
       duration: item.duration || Math.round((new Date(item.endTime || 0).getTime() - new Date(item.startTime || 0).getTime()) / 60000) || 45,
       rank: item.rank || 1,
       grade: item.grade || gradeCalc,
+      category: item.category || item.pack || item.testSeries?.category || undefined,
+      isLive: Boolean(item.isLive || item.is_live || item.type === 'live'),
     };
   });
 

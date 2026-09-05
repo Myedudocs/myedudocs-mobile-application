@@ -61,6 +61,7 @@ export const ResultsListScreen: React.FC<{ navigation: any }> = ({
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'passed' | 'failed'>('all');
+  const [testTypeFilter, setTestTypeFilter] = useState<'all' | 'live' | 'non-live'>('all');
 
   const { results, total, loading, refreshing, refresh } = useExamResults(page, 50);
 
@@ -97,9 +98,13 @@ export const ResultsListScreen: React.FC<{ navigation: any }> = ({
 
       if (filter === 'passed') return r.status === 'passed' || r.percentage >= 40;
       if (filter === 'failed') return r.status === 'failed' || r.percentage < 40;
+
+      if (testTypeFilter === 'live' && !r.isLive) return false;
+      if (testTypeFilter === 'non-live' && r.isLive) return false;
+
       return true;
     });
-  }, [results, searchQuery, filter]);
+  }, [results, searchQuery, filter, testTypeFilter]);
 
   if (loading && !refreshing) {
     return (
@@ -303,7 +308,46 @@ export const ResultsListScreen: React.FC<{ navigation: any }> = ({
               );
             })}
           </ScrollView>
+
+          {/* Test Type Filter Chips (parity with web) */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.filterChipRow, { marginTop: 6 }]}>
+            {[
+              { key: 'all', label: '📋 All Types' },
+              { key: 'live', label: '🔴 Live Sessions' },
+              { key: 'non-live', label: '📝 Regular Tests' },
+            ].map((f) => {
+              const isSelected = testTypeFilter === f.key;
+              return (
+                <TouchableOpacity
+                  key={f.key}
+                  onPress={() => setTestTypeFilter(f.key as any)}
+                  style={[
+                    styles.filterChip,
+                    {
+                      backgroundColor: isSelected
+                        ? '#EC4899'
+                        : theme.colors.surface,
+                      borderColor: isSelected ? '#EC4899' : theme.colors.border,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      {
+                        color: isSelected ? '#FFFFFF' : isDarkMode ? '#CBD5E1' : '#475569',
+                        fontWeight: isSelected ? '800' : '600',
+                      },
+                    ]}
+                  >
+                    {f.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
         </View>
+
 
         {/* Attempts List */}
         {filteredResults.length === 0 ? (

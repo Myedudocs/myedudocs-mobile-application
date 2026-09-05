@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,9 @@ import {
   ScrollView,
   Image,
   DeviceEventEmitter,
+  Animated,
 } from 'react-native';
+import useLiveSessions from '../hooks/useLiveSessions';
 import {
   createDrawerNavigator,
   DrawerContentScrollView,
@@ -98,6 +100,26 @@ const CustomDrawerContent: React.FC<DrawerContentComponentProps> = ({
   const { user, logout } = useAuth();
   const scrollRef = useRef<ScrollView | null>(null);
 
+  // --- Live Sessions Detection (same ±15 min logic as web) ---
+  const { sessions: liveSessions } = useLiveSessions();
+  const liveCount = liveSessions.filter((s) => {
+    const diff = Math.abs(new Date().getTime() - new Date(s.startTime).getTime());
+    return diff < 15 * 60 * 1000; // within 15 minutes
+  }).length;
+
+  // Pulsing animation for LIVE badge
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (liveCount > 0) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.25, duration: 600, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+        ])
+      ).start();
+    }
+  }, [liveCount]);
+
   const activeKey =
     (state.routeNames[state.index] || '').toString().toLowerCase();
 
@@ -124,6 +146,7 @@ const CustomDrawerContent: React.FC<DrawerContentComponentProps> = ({
     const Icon = item.icon;
     const isActive = activeKey.includes(item.key.toLowerCase()) ||
       (item.target === 'DashboardTab' && activeKey.includes('tabs'));
+    const showLiveBadge = item.key === 'liveSessions' && liveCount > 0;
     return (
       <TouchableOpacity
         key={item.key}
@@ -167,7 +190,13 @@ const CustomDrawerContent: React.FC<DrawerContentComponentProps> = ({
         >
           {t(item.labelKey, { defaultValue: item.key })}
         </Text>
-        {isActive ? <View style={styles.activeDot} /> : null}
+        {showLiveBadge ? (
+          <Animated.View style={[styles.liveBadge, { transform: [{ scale: pulseAnim }] }]}>
+            <Text style={styles.liveBadgeText}>LIVE</Text>
+          </Animated.View>
+        ) : isActive ? (
+          <View style={styles.activeDot} />
+        ) : null}
       </TouchableOpacity>
     );
   };
@@ -429,6 +458,18 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: 'rgba(0,0,0,0.06)',
     marginVertical: 14,
+  },
+  liveBadge: {
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  liveBadgeText: {
+    color: '#FFF',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
 });
 
